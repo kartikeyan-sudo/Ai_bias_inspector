@@ -1,63 +1,64 @@
 # ⚖️ AI Bias Inspector
+
 # ⚖️ AI Bias Inspector
 
-A production-ready full-stack platform to detect, measure, and mitigate bias in AI/ML models before they impact real-world decisions.
+Lightweight full-stack app to detect, evaluate, and mitigate bias in ML models (loan-approval style demo).
 
 ---
 
-**What this repo provides**
-
-- A FastAPI backend that trains models, evaluates fairness metrics, and offers mitigation endpoints: [backend/api.py](backend/api.py#L1)
-- A Vite + React frontend that calls the backend and displays bias metrics and charts: [frontend/src](frontend/src)
-
-**Goal:** make it simple to run the frontend and backend locally for development and testing.
+Table of contents
+- [Quick links](#quick-links)
+- [Requirements](#requirements)
+- [Run locally](#run-locally)
+        - [Backend](#backend)
+        - [Frontend](#frontend)
+- [API endpoints](#api-endpoints)
+- [Troubleshooting](#troubleshooting)
+- [Next steps I can do for you](#next-steps-i-can-do-for-you)
 
 ---
 
-**Prerequisites**
+## Quick links
 
-- Python 3.10+ (3.12 tested in this workspace)
+- Backend entry: `backend/api.py` ([open docs at /docs](http://127.0.0.1:8000/docs) when running)
+- Frontend source: `frontend/src`
+
+## Requirements
+
+- Python 3.10+ (3.12 tested)
 - Node.js 16+ and npm
-- Git (optional)
 
----
+## Run locally
 
-**Quickstart — Backend**
+### Backend
 
-1. Create and activate a Python virtual environment at the repo root (PowerShell example):
+1. From the repo root create and activate a venv (PowerShell):
 
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 ```
 
-CMD (Windows):
+Or (CMD):
 
 ```cmd
 python -m venv .venv
 .\.venv\Scripts\activate.bat
 ```
 
-2. Install backend requirements:
+2. Install dependencies and start the API:
 
 ```powershell
 pip install -r backend/requirements.txt
-```
-
-3. Start the backend (development with auto-reload):
-
-```powershell
 cd backend
 python -m uvicorn api:app --reload --host 0.0.0.0 --port 8000
 ```
 
-This serves the API on http://127.0.0.1:8000 and exposes interactive docs at http://127.0.0.1:8000/docs
+Open http://127.0.0.1:8000/docs for the interactive API documentation.
 
----
+### Frontend
 
-**Quickstart — Frontend**
-
-1. Install dependencies and run the dev server:
+1. Install and run the Vite dev server:
 
 ```bash
 cd frontend
@@ -65,45 +66,33 @@ npm install
 npm run dev
 ```
 
-2. Open the local Vite dev URL (typically http://localhost:5173) shown in the terminal.
+2. Open the Vite URL shown in the terminal (usually http://localhost:5173).
 
-The frontend calls the backend endpoints (default port 8000). If you run both locally, the frontend should be able to reach http://localhost:8000.
+The frontend expects the API at `http://localhost:8000` by default.
 
----
-
-**Endpoints (backend)**
+## API endpoints
 
 - `POST /generate-data` — generate synthetic dataset (JSON body: `{ "n_samples": 200, "seed": 42 }`)
-- `POST /train-model` — upload CSV (`file` form field) and optional `use_gender` (form) to train and evaluate
-- `POST /analyze-bias` — alias for `train-model`
-- `POST /mitigate-bias` — upload CSV and run mitigation pipeline
+- `POST /train-model` — upload a CSV (`file` form field) and optional `use_gender` to train and evaluate
+- `POST /analyze-bias` — same as `train-model`
+- `POST /mitigate-bias` — train with mitigation and return mitigated predictions
 
-See the interactive docs at [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs) for request/response shapes.
+Use the Swagger UI at `/docs` to experiment.
 
----
+## Troubleshooting
 
-**Tips & troubleshooting**
+- CORS: backend uses permissive CORS for local development (`backend/api.py`).
+- Port collisions: change the port with `--port <port>` when starting `uvicorn`.
+- If `npm install` fails, check Node/npm versions and network access.
 
-- If you hit CORS issues, the backend already enables wide-open CORS for local development in [backend/api.py](backend/api.py#L1).
-- To rerun the backend with a different port, pass `--port <port>` to `uvicorn` or set `UVICORN_PORT` in your environment and adjust the frontend API base URL in [frontend/src/services/api.js](frontend/src/services/api.js#L1).
-- If `npm run dev` fails, ensure Node.js and npm are installed and your network allows package downloads.
+## Next steps I can do for you
 
----
+- Commit the `.gitignore` and this README
+- Add a Windows `run-backend.bat` and `run-frontend.bat` for one-click starts
+- Add a Vite proxy so frontend requests to `/api` are forwarded to the backend
 
-**Development workflow**
+Tell me which of the above you'd like me to do next.
 
-- Make backend changes in `backend/` and the API will reload automatically when files change (uvicorn `--reload`).
-- Make frontend changes in `frontend/src` and Vite will hot-reload the app in the browser.
-
----
-
-If you want, I can:
-
-- Commit the new `.gitignore` and this README
-- Add a simple `Makefile` or `scripts` for Windows shortcuts
-- Wire the frontend dev server to proxy API requests to the backend automatically
-
-Tell me which of those you'd like next.
 
 The challenge: build a system that **detects, measures, and mitigates bias** before deployment.
 
