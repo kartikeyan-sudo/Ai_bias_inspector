@@ -1,9 +1,12 @@
 import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { jsPDF } from 'jspdf';
 import ThreeBackground from '../components/ThreeBackground';
 import MetricCard from '../components/MetricCard';
 import BiasCharts from '../components/BiasCharts';
-import { trainModel, mitigateBias } from '../services/api';
+import AIReportPanel from '../components/AIReportPanel';
+import RecommendationsList from '../components/RecommendationsList';
+import { trainModel, mitigateBias, explainBias, suggestFix } from '../services/api';
 
 const getBiasConfig = (level) => {
   if (level === 'Low') return {
@@ -36,6 +39,12 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(false);
   const [loadingMsg, setLoadingMsg] = useState('');
   const [results, setResults] = useState(null);
+  const [aiReport, setAiReport] = useState(null);
+  const [aiFixes, setAiFixes] = useState(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [fixLoading, setFixLoading] = useState(false);
+  const [aiError, setAiError] = useState(null);
+  const [fixError, setFixError] = useState(null);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('upload');
   const fileInputRef = useRef(null);
@@ -65,6 +74,10 @@ export default function Dashboard() {
     try {
       const data = await trainModel(file, useGender);
       setResults({ ...data, isMitigated: false });
+      setAiReport(null);
+      setAiFixes(null);
+      setAiError(null);
+      setFixError(null);
       setActiveTab('results');
     } catch (err) {
       setError(err.response?.data?.detail || err.message);
@@ -81,6 +94,10 @@ export default function Dashboard() {
       const before = results;
       const data = await mitigateBias(file, useGender);
       setResults({ ...data, isMitigated: true, before });
+      setAiReport(null);
+      setAiFixes(null);
+      setAiError(null);
+      setFixError(null);
       setActiveTab('results');
     } catch (err) {
       setError(err.response?.data?.detail || err.message);
@@ -88,27 +105,110 @@ export default function Dashboard() {
     setLoading(false);
   };
 
-  const handleDownload = () => {
-    if (!results) return;
-    const report = {
-      generated_at: new Date().toISOString(),
-      model_type: results.isMitigated ? 'Fairness-Mitigated' : 'Standard',
-      features_used: results.features_used,
+  const buildExplainabilityPayload = () => {
+    if (!results) return null;
+    return {
       metrics: {
         accuracy: results.accuracy,
-        bias_level: results.bias_level,
+        female_rate: results.female_rate,
+        male_rate: results.male_rate,
         bias_difference: results.bias_difference,
-        female_selection_rate: results.female_rate,
-        male_selection_rate: results.male_rate,
-        demographic_parity_difference: results.demographic_parity_diff,
-        equal_opportunity_difference: results.equal_opportunity_diff,
+        demographic_parity_diff: results.demographic_parity_diff,
+        equal_opportunity_diff: results.equal_opportunity_diff,
+        bias_level: results.bias_level,
       },
+      features_used: results.features_used || [],
+      dataset_profile: results.dataset_profile || {
+        rows: 0,
+        columns: 0,
+        sensitive_column: 'gender',
+        target_column: 'loan_approved',
+        missing_values: 0,
+      },
+      model_type: 'LogisticRegression',
     };
-    const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = 'ai_bias_report.json'; a.click();
-    URL.revokeObjectURL(url);
+  };
+
+  const handleExplainBias = async () => {
+    if (!results) return;
+    setAiLoading(true);
+    setAiError(null);
+    try {
+      const data = await explainBias(buildExplainabilityPayload());
+      setAiReport(data);
+    } catch (err) {
+      setAiError(err.response?.data?.detail || err.message);
+    }
+    setAiLoading(false);
+  };
+
+  const handleSuggestFix = async () => {
+    if (!results) return;
+    setFixLoading(true);
+    setFixError(null);
+    try {
+      const data = await suggestFix(buildExplainabilityPayload());
+      setAiFixes(data);
+    } catch (err) {
+      setFixError(err.response?.data?.detail || err.message);
+    }
+    setFixLoading(false);
+  };
+
+  const handleDownload = () => {
+    if (!results) return;
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 14;
+    let y = 16;
+
+    const addLine = (text, size = 11, indent = 0) => {
+      doc.setFontSize(size);
+      const lines = doc.splitTextToSize(text, pageWidth - margin * 2 - indent);
+      lines.forEach((line) => {
+        if (y > 280) {
+          doc.addPage();
+          y = 16;
+        }
+        doc.text(line, margin + indent, y);
+        y += size * 0.45 + 2;
+      });
+    };
+
+    doc.setFontSize(16);
+    doc.text('AI Bias Inspector Report', margin, y);
+    y += 8;
+
+    addLine(`Generated at: ${new Date().toISOString()}`);
+    addLine(`Model type: ${results.isMitigated ? 'Fairness-Mitigated' : 'Standard'}`);
+    addLine(`Features used: ${(results.features_used || []).join(', ')}`);
+    y += 2;
+
+    addLine('Metrics', 13);
+    addLine(`Accuracy: ${results.accuracy.toFixed(4)}`, 11, 2);
+    addLine(`Bias level: ${results.bias_level}`, 11, 2);
+    addLine(`Bias difference: ${results.bias_difference.toFixed(4)}`, 11, 2);
+    addLine(`Female selection rate: ${results.female_rate.toFixed(4)}`, 11, 2);
+    addLine(`Male selection rate: ${results.male_rate.toFixed(4)}`, 11, 2);
+    addLine(`Demographic parity diff: ${results.demographic_parity_diff.toFixed(4)}`, 11, 2);
+    addLine(`Equal opportunity diff: ${results.equal_opportunity_diff.toFixed(4)}`, 11, 2);
+    y += 2;
+
+    if (aiReport) {
+      addLine('Gemini Explain Bias', 13);
+      addLine(`Executive summary: ${aiReport.executive_summary || 'N/A'}`, 11, 2);
+      addLine(`Bias explanation: ${aiReport.bias_explanation || 'N/A'}`, 11, 2);
+      (aiReport.root_causes || []).forEach((cause) => addLine(`- ${cause}`, 11, 4));
+      y += 2;
+    }
+
+    if (aiFixes) {
+      addLine('Gemini Suggest Fix', 13);
+      (aiFixes.priority_actions || []).forEach((item) => addLine(`- ${item}`, 11, 2));
+      y += 2;
+    }
+
+    doc.save('ai_bias_report.pdf');
   };
 
   const biasConfig = results ? getBiasConfig(results.bias_level) : null;
@@ -437,10 +537,26 @@ export default function Dashboard() {
                       <div style={{ display: 'flex', gap: '12px' }}>
                         <button
                           className="btn-secondary"
+                          onClick={handleExplainBias}
+                          disabled={aiLoading}
+                          style={{ padding: '12px 24px', fontSize: '14px' }}
+                        >
+                          {aiLoading ? '⟳ Explaining...' : '🧠 Explain Bias'}
+                        </button>
+                        <button
+                          className="btn-secondary"
+                          onClick={handleSuggestFix}
+                          disabled={fixLoading}
+                          style={{ padding: '12px 24px', fontSize: '14px' }}
+                        >
+                          {fixLoading ? '⟳ Planning...' : '🛠️ Suggest Fix'}
+                        </button>
+                        <button
+                          className="btn-secondary"
                           onClick={handleDownload}
                           style={{ padding: '12px 24px', fontSize: '14px' }}
                         >
-                          ⬇️ Export Report
+                          ⬇️ Export PDF Report
                         </button>
                         <button
                           className="btn-primary"
@@ -663,6 +779,11 @@ export default function Dashboard() {
                           </div>
                         </motion.div>
                       </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px', marginTop: '24px' }}>
+                      <AIReportPanel report={aiReport} loading={aiLoading} error={aiError} />
+                      <RecommendationsList fixes={aiFixes} loading={fixLoading} error={fixError} />
                     </div>
                   </>
                 )}

@@ -1,0 +1,19 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: ai-bias-inspector-api
+spec:
+  template:
+    spec:
+      containers:
+        - image: gcr.io/PROJECT_ID/ai-bias-inspector-api
+          env:
+            - name: ALLOWED_ORIGINS
+              value: https://YOUR_FIREBASE_DOMAIN
+            - name: GEMINI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: gemini-api-key
+                  key: latest
+            - name: GEMINI_MODEL
+              value: gemini-2.0-flash

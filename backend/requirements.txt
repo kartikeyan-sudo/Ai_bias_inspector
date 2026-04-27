@@ -5,3 +5,6 @@ scikit-learn
 fairlearn
 python-multipart
 numpy
+google-genai
+python-dotenv
+pytest

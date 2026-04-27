@@ -142,3 +142,42 @@ How can we ensure AI systems are fair before they impact real lives?
 ❤️ Built With
 
 React · FastAPI · Three.js · Scikit-Learn · Fairlearn
+
+## New Upgrades (Solution Challenge)
+
+- Gemini explainability endpoints:
+        - POST /explainability/explain-bias
+        - POST /explainability/suggest-fix
+- PDF export in frontend results view.
+- Cloud deployment assets:
+        - backend/Dockerfile
+        - backend/cloudrun.yaml
+        - frontend/firebase.json
+- Automated backend tests under backend/tests.
+
+## Backend Env Setup
+
+Create backend/.env (do not commit it):
+
+APP_NAME=AI Bias Inspector API
+ALLOWED_ORIGINS=http://localhost:5173
+GEMINI_API_KEY=your_real_key
+GEMINI_MODEL=gemini-2.0-flash
+
+## Run Tests
+
+cd backend
+C:/Users/karti/OneDrive/Desktop/ML/.venv/Scripts/python.exe -m pytest -q
+
+## Cloud Run (Backend)
+
+cd backend
+gcloud builds submit --tag gcr.io/PROJECT_ID/ai-bias-inspector-api
+gcloud run deploy ai-bias-inspector-api --image gcr.io/PROJECT_ID/ai-bias-inspector-api --region us-central1 --platform managed --allow-unauthenticated
+
+## Firebase Hosting (Frontend)
+
+cd frontend
+npm install
+npm run build
+firebase deploy --only hosting

@@ -1,53 +1,102 @@
-# Python
+# Byte-compiled / optimized / DLL files
 __pycache__/
+**/__pycache__/
 *.py[cod]
 *$py.class
+*.pyc
+*.pyo
+
+# C extensions
+*.so
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+wheels/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+venv.bak/
+
+# Testing, linting, caches
 .pytest_cache/
 .mypy_cache/
-.cache/
-.venv/
-env/
-venv/
-ENV/
-*.egg-info/
-dist/
-build/
-.eggs/
+.dmypy.json
+.pyre/
+.coverage
+coverage.xml
+htmlcov/
 
 # Jupyter
 .ipynb_checkpoints/
 
-# VSCode / IDE
+# IDEs / editors
 .vscode/
 .idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
 
 # OS files
 .DS_Store
 Thumbs.db
+ehthumbs.db
+Desktop.ini
 
-# Environment files
+# Logs
+*.log
+logs/
+
+# Node / frontend
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+.vite/
+parcel-cache/
+.cache/
+
+# Env files
 .env
 .env.*
 *.env
 
-# Logs
-*.log
+# Data, models, outputs (ignore large/generated artifacts)
+models/
+*.h5
+*.hdf5
+*.pt
+*.pth
+*.ckpt
+*.pkl
+*.joblib
+*.sav
+*.npz
+outputs/
+output/
+data/
+tmp/
+temp/
 
-# Node
-node_modules/
-npm-debug.log
-yarn-error.log
-
-# Build artifacts
-dist/
-build/
-
-# Ignore compiled extensions
-*.so
-
-# Tests
-.coverage
-coverage.xml
+# Database files
+*.sqlite3
+*.db
+*.db-journal
 
 # Misc
 *.swp
+*.swo
+*.tmp
+*.bak
+*~
